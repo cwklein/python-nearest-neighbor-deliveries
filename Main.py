@@ -8,10 +8,10 @@ from Truck import truckHash
 from Scheduler import firstOutTime, secondOutTime, thirdOutTime
 
 
-def sendTruck(currentTruck, startDateTime, unsentPackages):
+def sendTruck(currentTruck, startDateTime, stagedPackages):
     currentTruck.status = "loading"
-    trackTruckStartTime(currentTruck,  startDateTime)
-    truckLocations =fillTruck(currentTruck, startDateTime, unsentPackages)
+    trackTruckStartTime(currentTruck, startDateTime)
+    truckLocations = fillTruck(currentTruck, startDateTime, stagedPackages)
 
     # Test start
     print("Truck #" + str(currentTruck.ID) + " load size: " + str(len(currentTruck.packageList)))
@@ -20,46 +20,50 @@ def sendTruck(currentTruck, startDateTime, unsentPackages):
     # Test end
 
     milesToDrive = orderLocations(truckLocations, currentTruck)
-    deliverPackages(currentTruck, milesToDrive, startDateTime)
+    deliverPackages(currentTruck, milesToDrive)
 
 
 # Test start
 #     print(milesToDrive)
 # Test end
 
-def fillTruck(currentTruck, startDateTime, unsentPackages):
+def fillTruck(currentTruck, startDateTime, stagedPackages):
     truckCapacity = 16
-    currentlyUnsent = unsentPackages.copy()
+    currentlyUnsent = stagedPackages.copy()
     truckLocations = []
 
-#Determining which packages will go on the truck
-    #if captures when all packages will fit on last truck
+    # Determining which packages will go on the truck
+    # if captures when all packages will fit on last truck
     if len(currentlyUnsent) <= truckCapacity:
         for package in currentlyUnsent:
             packageLocation = locationHash.search(package.locationID)
             if packageLocation not in truckLocations:
                 truckLocations.append(packageLocation)
-    #else captures when all packages won't fit on last truck
+    # else captures when all packages won't fit on last truck
     else:
         for package in currentlyUnsent:
             packageLocation = locationHash.search(package.locationID)
-            if (package.ID == 19 or package.deliveryDeadline != "EOD" or (("truck 2" in package.specialNotes) and (currentTruck.ID == 2))) and (packageLocation not in truckLocations):
+            if (package.ID == 19 or package.deliveryDeadline != "EOD" or (
+                    ("truck 2" in package.specialNotes) and (currentTruck.ID == 2))) and (
+                    packageLocation not in truckLocations):
                 truckLocations.append(packageLocation)
 
     # package list is determined for this truck, now putting packages on truck and updating package status
     for location in truckLocations:
         ready = True
         for package in currentlyUnsent:
-            if (location.ID == package.locationID) and ((("Delayed" in package.specialNotes)  and(startDateTime.time() < datetime.time(hour=9, minute=5)) or (("truck 2" in package.specialNotes) and (currentTruck.ID != 2)) )):
+            if (location.ID == package.locationID) and (("Delayed" in package.specialNotes) and (startDateTime.time() < datetime.time(hour=9, minute=5)) or (("truck 2" in package.specialNotes) and (currentTruck.ID != 2))):
                 ready = False
         if ready:
             for package in currentlyUnsent:
-                if (location.ID == package.locationID) and (("Wrong" not in package.specialNotes) or (startDateTime.time() > datetime.time(hour=10, minute=20))):
+                if (location.ID == package.locationID) and (("Wrong" not in package.specialNotes) or (
+                        startDateTime.time() > datetime.time(hour=10, minute=20))):
                     package.status = "in truck #" + str(currentTruck.ID)
                     currentTruck.packageList.append(package)
-                    unsentPackages.remove(package)
+                    stagedPackages.remove(package)
                     truckCapacity -= 1
     return truckLocations
+
 
 def orderLocations(truckLocations, currentTruck):
     mileageList = []
@@ -72,7 +76,7 @@ def orderLocations(truckLocations, currentTruck):
         for location in truckLocations:
             ID = location.ID
             distance = currentLocation.distanceList[ID]
-            if closestLocationDistance == None or distance < closestLocationDistance:
+            if closestLocationDistance is None or distance < closestLocationDistance:
                 closestLocationDistance = distance
                 closestLocationID = ID
 
@@ -92,7 +96,7 @@ def orderLocations(truckLocations, currentTruck):
     return mileageList
 
 
-def deliverPackages(currentTruck, milesToDrive, startDateTime):
+def deliverPackages(currentTruck, milesToDrive):
     currentTruck.status = "delivering"
     loadedPackages = currentTruck.packageList.copy()
     for tripDistance in milesToDrive:
@@ -104,11 +108,10 @@ def deliverPackages(currentTruck, milesToDrive, startDateTime):
         for package in loadedPackages:
             if package.locationID == currentAddress.ID:
                 currentTruck.packageList.remove(package)
-                package.status = "Delivered at: " + deliveryDateTime.strftime("%H:%M:%S")
-                print(package.status)
+                package.status = "Delivered at: " + deliveryDateTime.strftime("%H:%M:%S") + ", by Truck# " + str(
+                    currentTruck.ID)
 
     currentTruck.status = "at the hub"
-
 
 
 def trackTruckStartTime(currentTruck, startDateTime):
