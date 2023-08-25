@@ -1,6 +1,3 @@
-# Hash.py
-# HashTable class using chaining - START
-
 class ChainingHashTable:
     # Constructor with optional initial capacity parameter.
     # Assigns all buckets with an empty list.
@@ -51,7 +48,7 @@ class ChainingHashTable:
         # remove the item from the bucket list if it is present.
         for kv in bucket_list:
             if kv[0] == key:
-                self.size-=1
+                self.size -= 1
                 bucket_list.remove([kv[0], kv[1]])
 
 # HashTable class using chaining - END

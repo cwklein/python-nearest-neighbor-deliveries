@@ -1,59 +1,131 @@
 import csv
 import datetime
 
-from Hash import ChainingHashTable
-from Package import loadPackageData
-from Location import loadLocationData
-from Driver import Driver
-from Truck import Truck, fillTruck
-
-# Hash table instances
-packageHash = ChainingHashTable()
-locationHash = ChainingHashTable()
-truckHash = ChainingHashTable()
-driverHash = ChainingHashTable()
-
-# Array of ID's for tracking unsent package
-unsentPackageIDs = []
-
-# Current Time
-currentTime = datetime.time(hour= 8, minute=0)
-
-# Driver instances in driverHash
-driver_1 = Driver(1, 'Han Solo', 1, 'Ready')
-driver_2 = Driver(2, 'Chewbacca', 2,'Ready')
-driverHash.insert(driver_1.ID, driver_1)
-driverHash.insert(driver_2.ID,driver_2)
-
-# Truck instances in truckHash
-truck_1 = Truck(1,1,'at the hub', None)
-truck_2 = Truck(2,2, 'at the hub',None)
-truck_3 = Truck(3,None, 'at the hub', None)
-truckHash.insert(truck_1.ID, truck_1)
-truckHash.insert(truck_2.ID, truck_2)
-truckHash.insert(truck_3.ID, truck_3)
-
-# Load packages to Hash Table
-loadLocationData('WGUPS Distance File.csv',locationHash)
-loadPackageData('WGUPS Package File.csv', packageHash, unsentPackageIDs)
+from Driver import driverHash
+from Location import locationHash
+from Package import packageHash, unsentPackages
+from Truck import truckHash
+from Scheduler import firstOutTime, secondOutTime, thirdOutTime
 
 
-for i in range (1,truckHash.size+1):
-    nextTruck = truckHash.search(i)
-    truckLoad = fillTruck(packageHash, unsentPackageIDs, currentTime,nextTruck.ID)
-    nextTruck = truckHash.search(i)
-    nextTruck.packageList = truckLoad
+def sendTruck(currentTruck, startDateTime, unsentPackages):
+    currentTruck.status = "loading"
+    trackTruckStartTime(currentTruck,  startDateTime)
+    truckLocations =fillTruck(currentTruck, startDateTime, unsentPackages)
 
-    print("Truck #" + str(i)+ " load size: " + str(len(truckLoad)))
-    for package in nextTruck.packageList:
+    # Test start
+    print("Truck #" + str(currentTruck.ID) + " load size: " + str(len(currentTruck.packageList)))
+    for package in currentTruck.packageList:
         print(package)
+    # Test end
+
+    milesToDrive = orderLocations(truckLocations, currentTruck)
+    deliverPackages(currentTruck, milesToDrive, startDateTime)
 
 
-'''
-print("Unassigned Packages: " + str(len(unsentPackageIDs)))
-for packageID in unsentPackageIDs:
-    print(packageHash.search(packageID))
+# Test start
+#     print(milesToDrive)
+# Test end
 
-print(currentTime)
+def fillTruck(currentTruck, startDateTime, unsentPackages):
+    truckCapacity = 16
+    currentlyUnsent = unsentPackages.copy()
+    truckLocations = []
 
-'''
+#Determining which packages will go on the truck
+    #if captures when all packages will fit on last truck
+    if len(currentlyUnsent) <= truckCapacity:
+        for package in currentlyUnsent:
+            packageLocation = locationHash.search(package.locationID)
+            if packageLocation not in truckLocations:
+                truckLocations.append(packageLocation)
+    #else captures when all packages won't fit on last truck
+    else:
+        for package in currentlyUnsent:
+            packageLocation = locationHash.search(package.locationID)
+            if (package.ID == 19 or package.deliveryDeadline != "EOD" or (("truck 2" in package.specialNotes) and (currentTruck.ID == 2))) and (packageLocation not in truckLocations):
+                truckLocations.append(packageLocation)
+
+    # package list is determined for this truck, now putting packages on truck and updating package status
+    for location in truckLocations:
+        ready = True
+        for package in currentlyUnsent:
+            if (location.ID == package.locationID) and ((("Delayed" in package.specialNotes)  and(startDateTime.time() < datetime.time(hour=9, minute=5)) or (("truck 2" in package.specialNotes) and (currentTruck.ID != 2)) )):
+                ready = False
+        if ready:
+            for package in currentlyUnsent:
+                if (location.ID == package.locationID) and (("Wrong" not in package.specialNotes) or (startDateTime.time() > datetime.time(hour=10, minute=20))):
+                    package.status = "in truck #" + str(currentTruck.ID)
+                    currentTruck.packageList.append(package)
+                    unsentPackages.remove(package)
+                    truckCapacity -= 1
+    return truckLocations
+
+def orderLocations(truckLocations, currentTruck):
+    mileageList = []
+    closestLocationID = None
+    closestLocationDistance = None
+    currentLocation = locationHash.search(0)
+    currentTruck.visitedLocationList.append(currentLocation)
+
+    while len(truckLocations) > 0:
+        for location in truckLocations:
+            ID = location.ID
+            distance = currentLocation.distanceList[ID]
+            if closestLocationDistance == None or distance < closestLocationDistance:
+                closestLocationDistance = distance
+                closestLocationID = ID
+
+        mileageList.append(closestLocationDistance)
+        nextLocation = locationHash.search(closestLocationID)
+        currentTruck.toVisitLocationList.append(nextLocation)
+        truckLocations.remove(nextLocation)
+        currentLocation = nextLocation
+        closestLocationID = None
+        closestLocationDistance = None
+
+    distance = currentLocation.distanceList[0]
+    mileageList.append(distance)
+    nextLocation = locationHash.search(0)
+    currentTruck.toVisitLocationList.append(nextLocation)
+
+    return mileageList
+
+
+def deliverPackages(currentTruck, milesToDrive, startDateTime):
+    currentTruck.status = "delivering"
+    loadedPackages = currentTruck.packageList.copy()
+    for tripDistance in milesToDrive:
+        currentTruck.milesDriven += tripDistance
+        deliveryDateTime = trackTruckTime(currentTruck, tripDistance)
+        currentAddress = currentTruck.toVisitLocationList.pop(0)
+        currentTruck.visitedLocationList.append(currentAddress)
+
+        for package in loadedPackages:
+            if package.locationID == currentAddress.ID:
+                currentTruck.packageList.remove(package)
+                package.status = "Delivered at: " + deliveryDateTime.strftime("%H:%M:%S")
+                print(package.status)
+
+    currentTruck.status = "at the hub"
+
+
+
+def trackTruckStartTime(currentTruck, startDateTime):
+    currentTruck.milestoneList.append(startDateTime)
+
+
+def trackTruckTime(currentTruck, tripDistance):
+    tripMinutes = tripDistance / 18 * 60
+    currentDateTime = currentTruck.milestoneList[-1]
+    newDateTime = currentDateTime + datetime.timedelta(minutes=tripMinutes)
+    currentTruck.milestoneList.append(newDateTime)
+    return newDateTime
+
+
+sendTruck(truckHash.search(1), firstOutTime, unsentPackages)
+sendTruck(truckHash.search(2), secondOutTime, unsentPackages)
+sendTruck(truckHash.search(1), thirdOutTime, unsentPackages)
+print(truckHash.search(1).milestoneList)
+print(truckHash.search(2).milestoneList)
+print(str(truckHash.search(1).milesDriven + truckHash.search(2).milesDriven + truckHash.search(3).milesDriven))
