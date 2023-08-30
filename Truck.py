@@ -1,3 +1,5 @@
+# Truck.py
+
 from Hash import ChainingHashTable
 
 
@@ -13,7 +15,7 @@ class Truck:
         self.visitedLocationList = []
         self.toVisitLocationList = []
 
-    def __str__(self):  # overwrite print(Location) otherwise it will print object reference
+    def __str__(self):
         return "%s, %s, %s, Last location: %s, Next Locations: %s, Miles driven: %s, Number of Packages: %s" % (
             self.ID, self.driver, self.status, locationHash.search(self.visitedLocationList[0]).address,
             self.toVisitLocationList, self.milesDriven,  str(len(self.packageList)))

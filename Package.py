@@ -1,3 +1,5 @@
+# Package.py
+
 import csv
 from Hash import ChainingHashTable
 
@@ -19,7 +21,7 @@ class Package:
         self.timeLoaded = None
         self.timeDelivered = None
 
-    def __str__(self):  # overwrite print(Package) otherwise it will print object reference
+    def __str__(self):
         return "Package %s: (%s, %s, %s, %s) deadline: %s, weight: %s, special note: %s, status: %s" % (
             self.ID, self.address, self.city, self.state, self.zipcode, self.deliveryDeadline, self.weightKILO,
             self.specialNotes, self.status)

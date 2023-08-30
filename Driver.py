@@ -1,3 +1,5 @@
+# Driver.py
+
 from Hash import ChainingHashTable
 
 
@@ -8,7 +10,7 @@ class Driver:
         self.truck = truck
         self.status = status
 
-    def __str__(self):  # overwrite print(Location) otherwise it will print object reference
+    def __str__(self):
         return "%s, %s, %s, %s" % (
             self.ID, self.name, self.truck, self.status)
 

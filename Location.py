@@ -1,3 +1,5 @@
+# Location.py
+
 import csv
 from Hash import ChainingHashTable
 
@@ -9,7 +11,7 @@ class Location:
         self.address = address
         self.distanceList = distanceList
 
-    def __str__(self):  # overwrite print(Location) otherwise it will print object reference
+    def __str__(self):
         return "%s, %s, %s" % (
             self.ID, self.fullAddress, self.address)
 
