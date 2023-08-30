@@ -15,9 +15,12 @@ class Package:
         self.weightKILO = weightKILO
         self.specialNotes = specialNotes
         self.status = status
+        self.truck = None
+        self.timeLoaded = None
+        self.timeDelivered = None
 
     def __str__(self):  # overwrite print(Package) otherwise it will print object reference
-        return "%s, %s, %s, %s, %s, %s, %s, %s, %s" % (
+        return "Package %s: (%s, %s, %s, %s) deadline: %s, weight: %s, special note: %s, status: %s" % (
             self.ID, self.address, self.city, self.state, self.zipcode, self.deliveryDeadline, self.weightKILO,
             self.specialNotes, self.status)
 

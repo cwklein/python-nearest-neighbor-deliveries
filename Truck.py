@@ -7,6 +7,7 @@ class Truck:
         self.driver = driver
         self.status = status
         self.packageList = []
+        self.deliveredPackages = []
         self.milesDriven = 0.0
         self.milestoneList = []
         self.visitedLocationList = []
